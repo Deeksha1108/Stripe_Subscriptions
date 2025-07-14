@@ -1,50 +1,90 @@
-# Stripe Subscription System
+# Production-Ready Stripe Subscription System using NestJS + PostgreSQL
+
+This project replicates a real-world, scalable **SaaS-style subscription billing system** using **Stripe**, **NestJS**, **PostgreSQL**, and **TypeORM**.
 
 This is a production-ready backend system built using **NestJS**, **Stripe**, **TypeORM**, and **PostgreSQL**, designed to handle subscription billing, plan sync, refund tracking, and webhook processing.
 
+It handles everything end-to-end — from **checkout**, **subscription creation**, **updates**, **cancelations**, to **Stripe webhook processing** — just like how **Notion, Zoom, or Figma** manage user subscriptions behind the scenes.
+
 ---
 
-## Features
+## Key Features
 
-- Stripe integration (subscriptions, plans, refunds)
-- Webhook support with signature verification
-- Auto-syncing plans/prices from Stripe
-- Subscription lifecycle management
-- Refund tracking & update mechanism
-- Centralized logging with Winston
-- Global validation & exception handling
-- Raw body handling for Stripe webhooks
+- Full integration with **Stripe Checkout**, **Webhooks**, and **Refunds**
+- Persistent subscription data stored in PostgreSQL
+- Real-time syncing of plans/products/prices from Stripe
+- Webhook event processing for:
+  - `checkout.session.completed`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+  - `refund.updated`
+  - `price.created/updated`, `product.created/updated`
+- Used **TypeORM** for DB layer
+- Used **Winston Logger** for centralized error/info logging
+- Custom **global ValidationPipe** and **HttpExceptionFilter**
+- Config-driven and production-safe (`.env` with schema validation)
+
+---
+
+## Real-World Use Case
+
+Let’s say you are building a SaaS app like Figma:
+
+1. User clicks "Subscribe" → redirected to Stripe Checkout.
+2. On success:
+   - A webhook triggers: `checkout.session.completed`
+   - Subscription is created and saved to DB
+3. If user cancels or changes plan → `subscription.updated` webhook fires
+4. If user manually cancels → `subscription.deleted` webhook
+5. If admin issues refund → `refund.updated` webhook fires
+6. If you update plans/prices on Stripe → `price.created/updated` syncs DB
+
+All this happens automatically in this system.
 
 ---
 
 ## Tech Stack
 
-- **NestJS**
-- **Stripe SDK**
-- **PostgreSQL**
-- **TypeORM**
-- **Winston Logger**
-- **Custom Pipes & Filters**
-- **Environment-based Config Module**
+- **NestJS** (framework)
+- **PostgreSQL** + **TypeORM** (database)
+- **Stripe SDK** (`stripe` package)
+- **Winston Logger** (central logging)
+- **.env** based configuration with schema validation
+- **Custom global error filter** and **validation pipe**
+
+---
+
+## Folder Structure
+
+```
+src/
+├── stripe/               # Stripe service for checkout creation
+├── subscriptions/        # Core subscription logic (CRUD + sync)
+├── webhooks/             # Stripe webhook event handling
+├── refunds/              # Refund logic on webhook updates
+├── plans/                # Plan syncing from Stripe
+├── common/               # Pipes, filters, shared logic
+├── logger/               # Winston logger setup
+├── config/               # env + DB config files
+├── app.module.ts         # Root module
+└── main.ts               # Bootstrap + global pipes/filters
+```
 
 ---
 
 ## Setup Instructions
 
-### 1. Clone the repo
+### 1. Clone & Install
 
 ```bash
-git clone https://github.com/Deeksha1108/Stripe_Subscriptions.git
+git clone https://github.com/your-username/stripe-subscription-system.git
 cd stripe-subscription-system
-2. Install dependencies
-bash
-Copy code
 npm install
-3. Set up environment variables
-Create a .env file in the root with the following values:
+```
 
-env
-Copy code
+### 2. Setup `.env`
+
+```env
 PORT=3000
 NODE_ENV=development
 
@@ -56,94 +96,92 @@ DB_PORT=5432
 DB_USERNAME=postgres
 DB_PASSWORD=admin
 DB_NAME=stripe_db
-
-LOG_LEVEL=debug
-Make sure your Stripe keys are correct and test/live values are used appropriately.
-
-Running the App
-bash
-Copy code
-npm run start:dev
-The app will start on http://localhost:3000
-
-Folder Structure
-arduino
-Copy code
-src/
-│
-├── common/             → Global pipes, filters
-├── config/             → Environment, database & Stripe config
-├── logger/             → Winston logger config
-├── plans/              → Sync plans from Stripe
-├── refunds/            → Refund tracking
-├── stripe/             → Stripe client setup
-├── subscriptions/      → Subscription CRUD & logic
-└── webhooks/           → Stripe webhook handling
-
-API Endpoints
-
-POST /subscriptions
-Create a new subscription in the DB (usually called internally from webhook).
-
-GET /subscriptions/user/:userId
-Fetch subscription of a user.
-
-PATCH /subscriptions/update/:stripeSubId
-Update a subscription using Stripe ID.
-
-PATCH /subscriptions/cancel/:stripeSubId
-Cancel an active subscription.
-
-Webhook Handling
-Handled in WebhookService. Raw body is extracted manually to validate Stripe signatures. Supports:
-
-checkout.session.completed
-
-customer.subscription.updated
-
-customer.subscription.deleted
-
-refund.updated
-
-price.created/updated
-
-product.created/updated
-
-Logging
-All logs are managed using Winston:
-
-combined.log for all logs
-
-error.log for errors
-
-exceptions.log for uncaught exceptions
-
-rejections.log for unhandled promises
-
-You can find logs under /logs folder.
-
-Validation & Error Handling
-Global ValidationPipe handles DTO validation
-
-Global HttpExceptionFilter returns structured, user-safe error messages
-
-Logs detailed errors internally without exposing them to the client in production
-
-Environment-Specific Behavior
-Feature	Dev	Prod
-Schema Sync
-Verbose Logging	unless error
-Stack Traces Hidden
-Unsafe Exceptions	Sanitized
-
-- Tips
-- Use ngrok or Stripe CLI to test webhooks locally.
-
-- Never expose your STRIPE_SECRET_KEY publicly.
-
-- Use synchronize: false in production to avoid accidental data loss.
-
-
-Author
-Made by Deeksha
 ```
+
+### 3. Run the App
+
+```bash
+npm run start:dev
+```
+
+> The webhook controller expects **rawBody**, so it’s already configured using `express.json({ verify })`.
+
+---
+
+## Test Flow
+
+### Step 1: Create Checkout Session
+
+> Use frontend or Postman to call `POST /stripe/checkout`
+
+```http
+POST /stripe/checkout
+{
+  "userId": "deek123",
+  "planId": "price_1Rj..."
+}
+```
+
+> You’ll get a Stripe Checkout URL. Open it, subscribe using test card (`4242 4242 4242 4242`), complete the payment.
+
+### Step 2: Stripe Fires Webhook
+
+- Stripe hits your `/webhooks/stripe` endpoint.
+- Subscription is saved automatically.
+- Any future update/cancel also triggers webhooks.
+
+---
+
+## Stripe Webhook Events Handled
+
+| Event                              | Description                              |
+| ---------------------------------- | ---------------------------------------- |
+| `checkout.session.completed`       | Saves subscription on successful payment |
+| `customer.subscription.updated`    | Updates status, dates, price in DB       |
+| `customer.subscription.deleted`    | Cancels the subscription in DB           |
+| `refund.updated`                   | Tracks refund status                     |
+| `price.updated`, `product.updated` | Syncs latest plans to DB                 |
+
+---
+
+## Production-Ready Features
+
+- Safe error handling (production messages in live mode)
+- Winston logger (logs saved in `logs/` folder)
+- Global validation and exception handling
+- Config-driven `.env` system with validation
+- TypeORM-powered DB with scalable entity structure
+- Clean service/controller separation
+- Edge cases handled:
+
+- Subscription exists? → skip creation
+- User cancels? → mark as `canceled`
+- Stripe webhook fails? → logs error, sends generic message
+- RawBody ensured for signature verification
+
+---
+
+## What I Learned
+
+- Built a complete subscription billing system from scratch
+- Understood how to integrate and validate Stripe webhooks
+- Designed models to reflect real-world Stripe subscription states
+- Made all logic idempotent and safe against replays
+- Learned to log everything clearly for debugging and audit
+- Realized how real SaaS platforms handle this at scale
+
+---
+
+## Improvements for Future
+
+- Add email notifications after subscription actions
+- Add admin dashboard to manage plans/subscriptions
+- Add retry queue (Bull/Redis) for failed webhooks
+- Add frontend integration
+- Add Stripe Connect (for multi-vendor billing)
+
+---
+
+## Made By Deeksha
+
+> Built with using Stripe, NestJS, PostgreSQL, and production-level thinking.
