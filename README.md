@@ -1,9 +1,7 @@
-# Production-Ready Stripe Subscription System using NestJS + PostgreSQL
+# End-to-End Subscription Management System (Using Stripe)
 
 This project replicates a real-world, scalable **SaaS-style subscription billing system** using **Stripe**, **NestJS**, **PostgreSQL**, and **TypeORM**.
-
 This is a production-ready backend system built using **NestJS**, **Stripe**, **TypeORM**, and **PostgreSQL**, designed to handle subscription billing, plan sync, refund tracking, and webhook processing.
-
 It handles everything end-to-end — from **checkout**, **subscription creation**, **updates**, **cancelations**, to **Stripe webhook processing** — just like how **Notion, Zoom, or Figma** manage user subscriptions behind the scenes.
 
 ---
