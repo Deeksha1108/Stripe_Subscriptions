@@ -63,7 +63,7 @@ export class PlansController {
       const plan = await this.plansService.findById(id);
       if (!plan) {
         logger.warn(`Plan not found with ID: ${id}`);
-        throw new NotFoundException('Not exist!');
+        throw new NotFoundException('Not found!');
       }
       logger.info('Plan fetched successfully', { id });
       return {

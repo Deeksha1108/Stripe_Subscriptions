@@ -28,7 +28,6 @@ export class CreateSubscriptionDto {
   @IsIn([
     'active',
     'incomplete',
-    'trialing',
     'past_due',
     'unpaid',
     'canceled',

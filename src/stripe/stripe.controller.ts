@@ -39,6 +39,7 @@ export class StripeController {
         priceId,
         successUrl,
         cancelUrl,
+        userId: body.userId,
       });
 
       logger.info('Stripe checkout session created', {

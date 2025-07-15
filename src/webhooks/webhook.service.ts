@@ -107,6 +107,10 @@ export class WebhookService {
           }
           break;
 
+        case 'refund.created':
+          await this.handleRefundCreated(event.data.object as Stripe.Refund);
+          break;
+
         case 'refund.updated':
           await this.handleRefundUpdated(event.data.object as Stripe.Refund);
           break;
@@ -193,6 +197,50 @@ export class WebhookService {
     logger.info('Subscription cancelled from Stripe', {
       subscriptionId: sub.id,
     });
+  }
+
+  private async handleRefundCreated(refund: Stripe.Refund) {
+    const stripeRefundId = refund.id;
+    const stripePaymentIntentId = refund.payment_intent?.toString() || '';
+    const amount = refund.amount;
+    const reason = refund.reason || null;
+    const status = refund.status || 'unknown';
+    let userId = 'unknown';
+
+    try {
+      const paymentIntent = await this.stripe.paymentIntents.retrieve(
+        stripePaymentIntentId,
+      );
+
+      if (
+        paymentIntent.metadata &&
+        typeof paymentIntent.metadata.userId === 'string'
+      ) {
+        userId = paymentIntent.metadata.userId;
+      }
+    } catch (err: any) {
+      logger.warn('Failed to fetch PaymentIntent for refund webhook', {
+        stripePaymentIntentId,
+        error: err.message,
+      });
+    }
+
+    try {
+      await this.refundService.createRefundFromWebhook({
+        stripeRefundId,
+        stripePaymentIntentId,
+        amount,
+        reason,
+        status,
+        userId,
+      });
+      logger.info('Refund created from Stripe webhook', { stripeRefundId });
+    } catch (err) {
+      logger.error('Error saving refund from webhook', {
+        stripeRefundId,
+        error: err.message,
+      });
+    }
   }
 
   private async handleRefundUpdated(refund: Stripe.Refund) {

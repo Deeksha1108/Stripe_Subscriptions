@@ -45,7 +45,9 @@ export class StripeService {
         email,
         error: error.message || error,
       });
-      throw new InternalServerErrorException('Failed to create customer');
+      throw new InternalServerErrorException(
+        'Something went wrong. Please try again later.',
+      );
     }
   }
 
@@ -54,6 +56,7 @@ export class StripeService {
     priceId: string;
     successUrl: string;
     cancelUrl: string;
+    userId: string;
   }): Promise<Stripe.Checkout.Session> {
     try {
       logger.info('Creating Stripe checkout session', data);
@@ -70,6 +73,12 @@ export class StripeService {
         ],
         success_url: data.successUrl,
         cancel_url: data.cancelUrl,
+
+        payment_intent_data: {
+          metadata: {
+            userId: data.userId,
+          },
+        },
       });
 
       logger.info('Checkout session created successfully', {
@@ -84,8 +93,7 @@ export class StripeService {
         error: error.message || error,
       });
       throw new InternalServerErrorException(
-        'Failed to create checkout session',
-        error,
+        'Something went wrong. Please try again later.',
       );
     }
   }
@@ -111,8 +119,7 @@ export class StripeService {
         error: error.message || error,
       });
       throw new InternalServerErrorException(
-        'Failed to retrieve subscription',
-        error,
+        'Something went wrong. Please try again later.',
       );
     }
   }
@@ -136,7 +143,9 @@ export class StripeService {
         subscriptionId,
         error: error.message || error,
       });
-      throw new InternalServerErrorException('Failed to cancel subscription');
+      throw new InternalServerErrorException(
+        'Something went wrong. Please try again later.',
+      );
     }
   }
 }

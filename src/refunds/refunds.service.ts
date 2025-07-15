@@ -31,7 +31,7 @@ export class RefundsService {
       logger.warn('Refund already exists for this paymentIntent', {
         paymentIntentId: dto.paymentIntentId,
       });
-      throw new ConflictException('Already exists!');
+      throw new ConflictException('Already done!');
     }
 
     let refund: Stripe.Response<Stripe.Refund> | null = null;
@@ -115,7 +115,7 @@ export class RefundsService {
         logger.info('Refund found', { id });
       } else {
         logger.warn('Refund not found', { id });
-        throw new NotFoundException('Resource not found!');
+        throw new NotFoundException('Not found!');
       }
       return refund;
     } catch (error) {
@@ -124,6 +124,38 @@ export class RefundsService {
         'Something went wrong. Please try again later.',
       );
     }
+  }
+
+  async createRefundFromWebhook(data: {
+    stripeRefundId: string;
+    stripePaymentIntentId: string;
+    amount: number;
+    reason?: string | null;
+    status: string;
+    userId: string;
+  }) {
+    const exists = await this.refundRepo.findOne({
+      where: { stripeRefundId: data.stripeRefundId },
+    });
+
+    if (exists) {
+      logger.warn('Refund already exists in DB', {
+        stripeRefundId: data.stripeRefundId,
+      });
+      return;
+    }
+
+    const refund = this.refundRepo.create({
+      ...data,
+      reason: data.reason ?? undefined,
+    });
+    const saved = await this.refundRepo.save(refund);
+
+    logger.info('Refund saved to database (from webhook)', {
+      refundId: saved.id,
+    });
+
+    return saved;
   }
 
   async updateRefundStatus(stripeRefundId: string, status: string) {
@@ -156,7 +188,7 @@ export class RefundsService {
       const result = await this.refundRepo.softDelete(id);
       if (result.affected === 0) {
         logger.warn('No refund found to delete', { id });
-        throw new NotFoundException('Refund not found');
+        throw new NotFoundException('Not found!');
       }
       logger.info('Refund soft deleted', { id });
     } catch (error) {

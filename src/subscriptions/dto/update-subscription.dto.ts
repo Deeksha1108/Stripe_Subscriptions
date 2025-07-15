@@ -11,7 +11,6 @@ export class UpdateSubscriptionDto {
   @IsIn([
     'active',
     'incomplete',
-    'trialing',
     'past_due',
     'unpaid',
     'canceled',

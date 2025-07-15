@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stripe Subscription</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+      }
+
+      input,
+      button,
+      #card-element {
+        width: 100%;
+        padding: 12px;
+        margin: 10px 0;
+        box-sizing: border-box;
+      }
+
+      button {
+        background-color: #635bff;
+        color: white;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #5145cd;
+      }
+
+      #card-errors {
+        color: red;
+        font-size: 0.9em;
+        margin-top: -8px;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Subscribe to a Plan</h2>
+
+    <label>Email</label>
+    <input type="email" id="email" placeholder="deek08@gmail.com" required />
+
+    <label>User ID</label>
+    <input type="text" id="userId" placeholder="deek0811" required />
+
+    <label>Price ID</label>
+    <input type="text" id="priceId" placeholder="price_..." required />
+
+    <label>Card Details</label>
+    <div id="card-element"></div>
+    <div id="card-errors" role="alert"></div>
+
+    <button id="subscribeBtn">Proceed to Payment</button>
+
+    <script>
+      const stripe = Stripe('process.env.STRIPE_PUBLISHABLE_KEY');
+      const elements = stripe.elements();
+      const card = elements.create('card');
+      card.mount('#card-element');
+
+      card.on('change', function (event) {
+        const displayError = document.getElementById('card-errors');
+        if (event.error) {
+          displayError.textContent = event.error.message;
+        } else {
+          displayError.textContent = '';
+        }
+      });
+
+      document
+        .getElementById('subscribeBtn')
+        .addEventListener('click', async function () {
+          const email = document.getElementById('email').value;
+          const userId = document.getElementById('userId').value;
+          const priceId = document.getElementById('priceId').value;
+
+          if (!email || !userId || !priceId) {
+            alert('Please fill all fields');
+            return;
+          }
+
+          const response = await fetch(
+            'http://localhost:3000/stripe/create-payment-intent',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, userId, priceId }),
+            },
+          );
+
+          const result = await response.json();
+
+          if (!result.clientSecret) {
+            alert('Failed to create PaymentIntent');
+            console.error(result);
+            return;
+          }
+
+          const { error, paymentIntent } = await stripe.confirmCardPayment(
+            result.clientSecret,
+            {
+              payment_method: {
+                card: card,
+                billing_details: { email },
+              },
+            },
+          );
+
+          if (error) {
+            document.getElementById('card-errors').textContent = error.message;
+          } else if (paymentIntent.status === 'succeeded') {
+            window.location.href =
+              'http://localhost:3000/subscriptions/success';
+          } else {
+            window.location.href = 'http://localhost:3000/subscriptions/cancel';
+          }
+        });
+    </script>
+  </body>
+</html>

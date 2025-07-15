@@ -31,7 +31,7 @@ if (error) {
     message: error.message,
     details: error.details,
   });
-  throw new Error(`Environment validation error: ${error.message}`);
+  throw new Error(`Validation error: ${error.message}`);
 }
 
 export const validationSchema = schema;

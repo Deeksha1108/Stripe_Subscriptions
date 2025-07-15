@@ -1,8 +1,7 @@
 # End-to-End Subscription Management System (Using Stripe)
 
-This project replicates a real-world, scalable **SaaS-style subscription billing system** using **Stripe**, **NestJS**, **PostgreSQL**, and **TypeORM**.
-This is a production-ready backend system built using **NestJS**, **Stripe**, **TypeORM**, and **PostgreSQL**, designed to handle subscription billing, plan sync, refund tracking, and webhook processing.
-It handles everything end-to-end — from **checkout**, **subscription creation**, **updates**, **cancelations**, to **Stripe webhook processing** — just like how **Notion, Zoom, or Figma** manage user subscriptions behind the scenes.
+This project replicates a real-world, scalable **SaaS-style subscription billing system** and is a production-ready backend system built using **NestJS**, **Stripe**, **TypeORM**, and **PostgreSQL**, designed to handle subscription billing, plan sync, refund tracking, and webhook processing.
+It handles everything end-to-end - from **checkout**, **subscription creation**, **updates**, **cancellations**, to **Stripe webhook processing** - just like how **Notion, Zoom, or Figma** manage user subscriptions behind the scenes.
 
 ---
 
@@ -32,7 +31,7 @@ Let’s say you are building a SaaS app like Figma:
 2. On success:
    - A webhook triggers: `checkout.session.completed`
    - Subscription is created and saved to DB
-3. If user cancels or changes plan → `subscription.updated` webhook fires
+3. If user upgrades/cancels or changes plan → `subscription.updated` webhook fires
 4. If user manually cancels → `subscription.deleted` webhook
 5. If admin issues refund → `refund.updated` webhook fires
 6. If you update plans/prices on Stripe → `price.created/updated` syncs DB
@@ -66,6 +65,7 @@ src/
 ├── config/               # env + DB config files
 ├── app.module.ts         # Root module
 └── main.ts               # Bootstrap + global pipes/filters
+checkoutUI/               # Frontend-UI for checkout-session
 ```
 
 ---
@@ -115,7 +115,7 @@ npm run start:dev
 ```http
 POST /stripe/checkout
 {
-  "userId": "deek123",
+  "userId": "deek0811",
   "planId": "price_1Rj..."
 }
 ```
@@ -126,7 +126,7 @@ POST /stripe/checkout
 
 - Stripe hits your `/webhooks/stripe` endpoint.
 - Subscription is saved automatically.
-- Any future update/cancel also triggers webhooks.
+- Any future update/cancel also triggers webhooks and updates to DB.
 
 ---
 
@@ -153,6 +153,8 @@ POST /stripe/checkout
 - Edge cases handled:
 
 - Subscription exists? → skip creation
+- Invalid plan → 400 error with message
+- Duplicate webhook event → ignored
 - User cancels? → mark as `canceled`
 - Stripe webhook fails? → logs error, sends generic message
 - RawBody ensured for signature verification
@@ -163,9 +165,10 @@ POST /stripe/checkout
 
 - Built a complete subscription billing system from scratch
 - Understood how to integrate and validate Stripe webhooks
-- Designed models to reflect real-world Stripe subscription states
+- Designed DB schemas for real-world plan tracking
 - Made all logic idempotent and safe against replays
 - Learned to log everything clearly for debugging and audit
+- Created robust retry-safe webhook logic
 - Realized how real SaaS platforms handle this at scale
 
 ---

@@ -8,11 +8,14 @@ import {
   NotFoundException,
   ValidationPipe,
   UsePipes,
+  Res,
 } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { logger } from 'src/logger/winston-logger';
+import { join } from 'path';
+import { Response } from 'express';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
@@ -59,5 +62,31 @@ export class SubscriptionsController {
   async cancel(@Param('stripeSubId') stripeSubId: string) {
     logger.info(`Cancelling subscription: ${stripeSubId}`);
     return this.subscriptionsService.cancelSubscription(stripeSubId);
+  }
+
+  @Get('success')
+  async redirectSuccess(@Res() res: Response) {
+    const filePath = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'checkoutUI',
+      'result.html',
+    );
+    return res.sendFile(filePath);
+  }
+
+  @Get('cancel')
+  redirectCancel(@Res() res: Response) {
+    const filePath = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'checkoutUI',
+      'result.html',
+    );
+    return res.sendFile(filePath);
   }
 }
